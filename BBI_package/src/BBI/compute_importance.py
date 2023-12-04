@@ -38,6 +38,7 @@ def joblib_compute_conditional(
     list_seeds=None,
     Perm=False,
     output_dim=1,
+    verbose=0,
 ):
     """This function applies the conditional approach for feature importance.
     Parameters
@@ -210,7 +211,7 @@ def joblib_compute_conditional(
                         importance_models["regression"],
                         X_test_minus_idx[cur_output_ind, ...],
                         output["regression"][cur_output_ind, ...],
-                        param_grid={"max_depth": [2, 5, 10]}
+                        param_grid={"max_depth": [2, 5, 10]},
                     )
                     importance_models["regression"].fit(
                         X_test_minus_idx[cur_output_ind, ...],
@@ -248,7 +249,7 @@ def joblib_compute_conditional(
                     importance_models["classification"],
                     X_test_minus_idx[cur_output_ind, ...],
                     output["classification"],
-                    param_grid={"max_depth": [2, 5, 10]}
+                    param_grid={"max_depth": [2, 5, 10]},
                 )
                 importance_models["classification"].fit(
                     X_test_minus_idx[cur_output_ind, ...],
@@ -280,7 +281,7 @@ def joblib_compute_conditional(
                         importance_models["ordinal"],
                         X_test_minus_idx[cur_output_ind, ...],
                         cur_ordinal,
-                        param_grid={"max_depth": [2, 5, 10]}
+                        param_grid={"max_depth": [2, 5, 10]},
                     )
                     importance_models["ordinal"].fit(
                         X_test_minus_idx[cur_output_ind, ...], cur_ordinal
@@ -306,7 +307,7 @@ def joblib_compute_conditional(
                         importance_models["regression"],
                         X_test_minus_idx[cur_output_ind, ...],
                         output["regression"][cur_output_ind, ...],
-                        param_grid={"min_samples_leaf": [10, 15, 20]}
+                        param_grid={"min_samples_leaf": [10, 15, 20]},
                     )
 
                     importance_models["regression"].fit(
@@ -329,7 +330,7 @@ def joblib_compute_conditional(
                     importance_models["classification"],
                     X_test_minus_idx[cur_output_ind, ...],
                     output["classification"],
-                    param_grid={"min_samples_leaf": [10, 15, 20]}
+                    param_grid={"min_samples_leaf": [10, 15, 20]},
                 )
                 importance_models["classification"].fit(
                     X_test_minus_idx[cur_output_ind, ...],
@@ -353,7 +354,7 @@ def joblib_compute_conditional(
                         importance_models["ordinal"],
                         X_test_minus_idx[cur_output_ind, ...],
                         cur_ordinal,
-                        param_grid={"min_samples_leaf": [10, 15, 20]}
+                        param_grid={"min_samples_leaf": [10, 15, 20]},
                     )
 
                     importance_models["ordinal"].fit(
@@ -375,12 +376,13 @@ def joblib_compute_conditional(
         )
 
     for sample in range(n_sample):
-        if index_i is not None:
-            print(
-                f"Iteration/Fold:{index_i}, Processing col:{proc_col+1}, Sample:{sample+1}"
-            )
-        else:
-            print(f"Processing col:{proc_col+1}")
+        if verbose > 0:
+            if index_i is not None:
+                print(
+                    f"Iteration/Fold:{index_i}, Processing col:{proc_col+1}, Sample:{sample+1}"
+                )
+            else:
+                print(f"Processing col:{proc_col+1}")
         # Same shuffled indices across the sub-models items
         indices = np.arange(current_X_test_list[0].shape[1])
         if importance_estimator != "Mod_RF":
@@ -584,6 +586,7 @@ def joblib_compute_permutation(
     index_i=None,
     group_stacking=False,
     random_state=None,
+    verbose=0,
 ):
     """This function applies the permutation feature importance (PFI).
 
@@ -623,12 +626,13 @@ def joblib_compute_permutation(
     """
     rng = np.random.RandomState(random_state)
 
-    if index_i is not None:
-        print(
-            f"Iteration/Fold:{index_i}, Processing col:{proc_col+1}, Permutation:{perm+1}"
-        )
-    else:
-        print(f"Processing col:{proc_col+1}, Permutation:{perm+1}")
+    if verbose > 0:
+        if index_i is not None:
+            print(
+                f"Iteration/Fold:{index_i}, Processing col:{proc_col+1}, Permutation:{perm+1}"
+            )
+        else:
+            print(f"Processing col:{proc_col+1}, Permutation:{perm+1}")
 
     # A list of copied items to avoid any overlapping in the process
     current_X_test_list = [X_test_el.copy() for X_test_el in X_test_list]

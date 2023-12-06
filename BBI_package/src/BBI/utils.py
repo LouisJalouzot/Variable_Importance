@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import log_loss, mean_squared_error
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from torchmetrics import Accuracy
 
@@ -17,6 +18,7 @@ def create_X_y(
     prob_type="regression",
     list_cont=None,
     random_state=None,
+    scale=False,
 ):
     """Create train/valid split of input data X and target variable y.
     Parameters
@@ -35,6 +37,8 @@ def create_X_y(
         The list of continuous variables.
     random_state: int, default=2023
         Fixing the seeds of the random generator.
+    scale: boolean, default=False
+        Apply or not StandardScaler to X and y
 
     Returns
     -------
@@ -63,12 +67,17 @@ def create_X_y(
 
     if bootstrap:
         train_ind = rng.choice(n, n, replace=True)
+        valid_ind = np.array([ind for ind in range(n) if ind not in train_ind])
     else:
-        train_ind = rng.choice(n, size=int(np.floor(split_perc * n)), replace=False)
-    valid_ind = np.array([ind for ind in range(n) if ind not in train_ind])
+        train_ind, valid_ind = train_test_split(
+            np.arange(n), train_size=split_perc, shuffle=True, random_state=random_state,
+        )
 
     X_train, X_valid = X[train_ind], X[valid_ind]
     y_train, y_valid = y[train_ind], y[valid_ind]
+
+    if not scale:
+        return X_train, y_train, X_valid, y_valid, X, y, None, None, valid_ind
 
     # Scaling X and y
     X_train_scaled = X_train.copy()

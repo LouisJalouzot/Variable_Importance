@@ -70,6 +70,8 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
         Fixing the seeds of the random generator.
     com_imp: boolean, default=True
         Compute or not the importance scores.
+    scale: boolean, default=False
+        Apply StandardScaler or not to X and Y
     Attributes
     ----------
     ToDO
@@ -97,6 +99,7 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
         index_i=None,
         random_state=2023,
         com_imp=True,
+        scale=False,
     ):
         self.estimator = estimator
         self.importance_estimator = importance_estimator
@@ -128,6 +131,7 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
         self.scaler_x = [None] * max(self.k_fold, 1)
         self.scaler_y = [None] * max(self.k_fold, 1)
         self.com_imp = com_imp
+        self.scale = scale
 
     def fit(self, X, y=None):
         """Build the provided estimator with the training set (X, y)
@@ -372,6 +376,7 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
             prob_type=self.prob_type,
             list_cont=self.list_cont,
             random_state=self.random_state,
+            scale=self.scale,
         )
         list_hyper = list(itertools.product(*list(self.dict_hyper.values())))
         list_loss = []
@@ -423,8 +428,12 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
                 list_hyper[ind_el] = curr_params
                 self.estimator.set_params(**curr_params)
                 if self.prob_type == "regression":
-                    y_train_curr = y_train_scaled * scaler_y.scale_ + scaler_y.mean_
-                    y_valid_curr = y_valid_scaled * scaler_y.scale_ + scaler_y.mean_
+                    if self.scale:
+                        y_train_curr = y_train_scaled * scaler_y.scale_ + scaler_y.mean_
+                        y_valid_curr = y_valid_scaled * scaler_y.scale_ + scaler_y.mean_
+                    else:
+                        y_train_curr = y_train_scaled
+                        y_valid_curr = y_valid_scaled
                     func = lambda x: self.estimator.predict(x)
                 else:
                     y_train_curr = y_train_scaled.copy()
@@ -474,9 +483,10 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
             if self.type != "DNN":
                 if not isinstance(curr_X, np.ndarray):
                     X_tmp = np.array(X_tmp)
-                X_tmp[:, self.list_cont] = self.scaler_x[ind_fold].transform(
-                    X_tmp[:, self.list_cont]
-                )
+                if self.scale:
+                    X_tmp[:, self.list_cont] = self.scaler_x[ind_fold].transform(
+                        X_tmp[:, self.list_cont]
+                    )
                 self.X_proc[ind_fold] = [X_tmp.copy()]
 
             self.org_pred[ind_fold] = self.list_estimators[ind_fold].predict(X_tmp)
@@ -521,9 +531,10 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
             if self.type != "DNN":
                 if not isinstance(curr_X, np.ndarray):
                     X_tmp = np.array(X_tmp)
-                X_tmp[:, self.list_cont] = self.scaler_x[ind_fold].transform(
-                    X_tmp[:, self.list_cont]
-                )
+                if self.scale:
+                    X_tmp[:, self.list_cont] = self.scaler_x[ind_fold].transform(
+                        X_tmp[:, self.list_cont]
+                    )
                 self.X_proc[ind_fold] = [X_tmp.copy()]
 
             self.org_pred[ind_fold] = self.list_estimators[ind_fold].predict_proba(

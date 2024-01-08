@@ -753,6 +753,7 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
         if self.prob_type == "regression":
             results["score_MAE"] = np.mean(np.array(score_imp_l), axis=0)[0]
             results["score_R2"] = np.mean(np.array(score_imp_l), axis=0)[1]
+            results["score_R"] = np.mean(np.array(score_imp_l), axis=0)[2]
         else:
             results["score_AUC"] = np.mean(np.array(score_imp_l), axis=0)
 

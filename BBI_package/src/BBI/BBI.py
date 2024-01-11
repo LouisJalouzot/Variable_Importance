@@ -15,8 +15,9 @@ from sklearn.model_selection import KFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.utils.validation import check_is_fitted
+from tqdm.contrib.concurrent import process_map
 
-from .compute_importance import joblib_compute_conditional, joblib_compute_permutation
+from .compute_importance import joblib_compute_conditional, tqdm_compute_permutation
 from .Dnn_learner import DNN_learner
 from .utils import convert_predict_proba, create_X_y
 
@@ -321,7 +322,7 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
                 shuffle=True,
             )
             for ind_fold, (train_index, test_index) in enumerate(kf.split(X)):
-                if self.verbose > 0:
+                if self.verbose > 1:
                     print(f"Processing: {ind_fold+1}")
                 X_fold = X.copy()
                 y_fold = y.copy()
@@ -630,7 +631,6 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
             self.predict_proba(X, encoding=encoding)
 
         list_seeds_imp = self.rng.randint(1e5, size=self.n_perm)
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=self.verbose)
         score_imp_l = []
         score_cur_l = []
         # n_features x n_permutations x n_samples
@@ -649,28 +649,38 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
                     )
             if self.com_imp:
                 if not self.conditional:
+                    args = [
+                        dict(
+                            p_col=self.list_cols[p_col],
+                            perm=perm,
+                            estimator=estimator,
+                            type_predictor=self.type,
+                            X_test_list=self.X_proc[ind_fold],
+                            y_test=y[ind_fold],
+                            prob_type=self.prob_type,
+                            org_pred=self.org_pred[ind_fold],
+                            dict_cont=self.dict_cont,
+                            dict_nom=self.dict_nom,
+                            proc_col=p_col,
+                            index_i=ind_fold + 1,
+                            group_stacking=self.group_stacking,
+                            random_state=list_seeds_imp[perm],
+                            verbose=self.verbose - 1,
+                        )
+                        for p_col in range(len(self.list_cols))
+                        for perm in range(self.n_perm)
+                    ]
+
                     self.pred_scores[ind_fold], score_cur = list(
                         zip(
-                            *parallel(
-                                delayed(joblib_compute_permutation)(
-                                    self.list_cols[p_col],
-                                    perm,
-                                    estimator,
-                                    self.type,
-                                    self.X_proc[ind_fold],
-                                    y[ind_fold],
-                                    self.prob_type,
-                                    self.org_pred[ind_fold],
-                                    dict_cont=self.dict_cont,
-                                    dict_nom=self.dict_nom,
-                                    proc_col=p_col,
-                                    index_i=ind_fold + 1,
-                                    group_stacking=self.group_stacking,
-                                    random_state=list_seeds_imp[perm],
-                                    verbose=self.verbose,
-                                )
-                                for p_col in range(len(self.list_cols))
-                                for perm in range(self.n_perm)
+                            *process_map(
+                                tqdm_compute_permutation,
+                                args,
+                                max_workers=(
+                                    None if self.n_jobs == -1 else self.n_jobs
+                                ),
+                                disable=self.verbose == 0,
+                                desc=f"[Fold {ind_fold+1} / {self.k_fold}] Computing permutations",
                             )
                         )
                     )
@@ -685,6 +695,7 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
                         )
                     )
                 else:
+                    parallel = Parallel(n_jobs=self.n_jobs, verbose=self.verbose)
                     self.pred_scores[ind_fold], score_cur = list(
                         zip(
                             *parallel(

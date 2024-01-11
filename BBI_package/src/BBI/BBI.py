@@ -631,7 +631,9 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
             self.predict_proba(X, encoding=encoding)
 
         list_seeds_imp = self.rng.randint(1e5, size=self.n_perm)
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=max(0, self.verbose - 1))
+        parallel = Parallel(
+            n_jobs=self.n_jobs, verbose=max(0, self.verbose - 1)
+        )
         score_imp_l = []
         score_cur_l = []
         # n_features x n_permutations x n_samples

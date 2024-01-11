@@ -8,6 +8,7 @@ from joblib import Parallel, delayed
 from scipy.stats import norm
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.feature_selection import r_regression
 from sklearn.linear_model import RidgeCV
 from sklearn.metrics import log_loss, mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold
@@ -722,7 +723,11 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
                 score_cur_l.append(
                     (
                         mean_absolute_error(y[ind_fold], self.org_pred[ind_fold]),
+                        mean_squared_error(y[ind_fold], self.org_pred[ind_fold]),
                         r2_score(y[ind_fold], self.org_pred[ind_fold]),
+                        r_regression(
+                            self.org_pred[ind_fold].reshape(-1, 1), y[ind_fold]
+                        )[0],
                     )
                 )
         if len(score_cur_l) > 0:
@@ -752,8 +757,9 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
         results["pval"][np.isnan(results["pval"])] = 1
         if self.prob_type == "regression":
             results["score_MAE"] = np.mean(np.array(score_imp_l), axis=0)[0]
-            results["score_R2"] = np.mean(np.array(score_imp_l), axis=0)[1]
-            results["score_R"] = np.mean(np.array(score_imp_l), axis=0)[2]
+            results["score_MSE"] = np.mean(np.array(score_imp_l), axis=0)[1]
+            results["score_R2"] = np.mean(np.array(score_imp_l), axis=0)[2]
+            results["score_R"] = np.mean(np.array(score_imp_l), axis=0)[3]
         else:
             results["score_AUC"] = np.mean(np.array(score_imp_l), axis=0)
 

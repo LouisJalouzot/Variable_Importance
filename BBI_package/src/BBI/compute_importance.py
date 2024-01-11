@@ -4,7 +4,12 @@ from collections import Counter
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.feature_selection import r_regression
-from sklearn.metrics import mean_absolute_error, r2_score, roc_auc_score
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import OneHotEncoder
 
@@ -373,6 +378,7 @@ def joblib_compute_conditional(
     else:
         score = (
             mean_absolute_error(y_test, org_pred),
+            mean_squared_error(y_test, org_pred),
             r2_score(y_test, org_pred),
             r_regression(org_pred.reshape(-1, 1), y_test)[0],
         )
@@ -657,6 +663,7 @@ def joblib_compute_permutation(
     if prob_type == "regression":
         score = (
             mean_absolute_error(y_test, org_pred),
+            mean_squared_error(y_test, org_pred),
             r2_score(y_test, org_pred),
             r_regression(org_pred.reshape(-1, 1), y_test)[0],
         )

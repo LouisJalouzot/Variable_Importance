@@ -342,7 +342,7 @@ class BlockBasedImportance(BaseEstimator, TransformerMixin):
                 # following steps (Default estimator)
                 if self.do_hyper:
                     self.__tuning_hyper(X_train, y_train, ind_fold)
-                if self.type == "DNN":
+                else:
                     self.estimator.fit(X_train, y_train)
                 self.list_estimators[ind_fold] = copy(self.estimator)
 

@@ -694,9 +694,6 @@ def joblib_compute_permutation(
         )
     return res, score
 
-def tqdm_compute_permutation(arg):
-    return joblib_compute_permutation(**arg)
-
 def hypertune_predictor(estimator, X, y, param_grid):
     # param_grid = {"max_depth": [2, 5, 10]}
     grid_search = GridSearchCV(estimator, param_grid=param_grid, cv=2)
